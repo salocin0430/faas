@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # APISIX y sus dependencias
+  # etcd:  # Comentado porque usaremos standalone mode
+  #   image: bitnami/etcd:3.4.9
+  #   user: root
+  #   environment:
+  #     ETCD_DATA_DIR: /etcd_data
+  #     ETCD_ENABLE_V2: "true"
+  #     ALLOW_NONE_AUTHENTICATION: "yes"
+  #     ETCD_ADVERTISE_CLIENT_URLS: "http://etcd:2379"
+  #     ETCD_LISTEN_CLIENT_URLS: "http://0.0.0.0:2379"
+  #   ports:
+  #     - "2379:2379/tcp"
+  #   volumes:
+  #     - etcd_data:/bitnami/etcd
+  #   networks:
+  #     - apisix
+
+  apisix:
+    image: apache/apisix:3.11.0-debian
+    restart: always
+    volumes:
+      - ./deployments/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro  
+      - ./deployments/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    ports:
+      - "9080:9080"
+    environment:
+      - GATEWAY_PORT=9080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/apisix/admin/health"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - apisix
+
+  backend:
+    image: nginx:1.25-alpine
+    restart: always
+    volumes:
+      - ./deployments/upstream/backend.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "9081:80/tcp"
+    environment:
+      - NGINX_PORT=80    
+    networks:
+      - apisix
+
+  # Servicios existentes
+  nats:
+    image: nats:latest
+    command: ["--js"]
+    ports:
+      - "4222:4222"
+      - "8222:8222"
+    volumes:
+      - nats-data:/data/nats-server/jetstream
+    networks:
+      - apisix
+
+  api:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.api
+    expose:
+      - "8080"
+    environment:
+      - NATS_URL=nats://nats:4222
+      - SERVER_ADDRESS=:8080
+      - JWT_SECRET=your-super-secret-key-for-development  # Cambiar en producción
+    depends_on:
+      - nats
+      - apisix
+    networks:
+      - apisix
+
+volumes:
+  nats-data:
+  # etcd_data:  # Comentado porque no lo usaremos
+  apisix_data:
+
+networks:
+  apisix:  # Red dedicada para nuestros servicios
+    driver: bridge

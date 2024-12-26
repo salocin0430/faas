@@ -1,0 +1,19 @@
+FROM golang:1.23.1-alpine AS builder
+
+WORKDIR /app
+
+RUN apk add --no-cache git
+
+COPY go.mod go.sum ./
+RUN go mod download
+
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux go build -o /app/faas-api ./internal/api
+
+FROM alpine:3.19
+WORKDIR /app
+COPY --from=builder /app/faas-api /app/faas-api
+RUN chmod +x /app/faas-api
+
+EXPOSE 8080
+CMD ["/app/faas-api"]

@@ -1,0 +1,62 @@
+upstreams:
+  - name: "example upstream"
+    id: 1
+    type: roundrobin
+    nodes:
+      "backend:80": 1
+  - name: "api upstream"
+    id: 2
+    type: roundrobin
+    nodes:
+      "api:8080": 1
+
+routes:
+  # Rutas públicas para auth
+  - name: "login"
+    uri: /auth/login
+    upstream_id: 2
+    plugins:
+      proxy-rewrite:
+        uri: "/auth/login"
+  - name: "register"
+    uri: /auth/register
+    upstream_id: 2
+    plugins:
+      proxy-rewrite:
+        uri: "/auth/register"
+  - name: "user"
+    uri: /users
+    upstream_id: 2
+    plugins:
+      proxy-rewrite:
+        uri: "/users"        
+
+  # Rutas protegidas para API
+  - name: "api-routes"
+    uri: /api/*
+    methods: ["GET", "POST", "PUT", "DELETE"]
+    upstream_id: 2
+    plugins:
+      jwt-auth:
+        secret: "your-super-secret-key-for-development"
+        header: "Authorization"
+      proxy-rewrite:
+        headers:
+          set:
+            X-User-ID: "$consumer_name" 
+
+  # Ruta por defecto para la app
+  - name: "default-route"
+    uri: /*
+    upstream_id: 1
+    plugins:
+      proxy-rewrite:
+        uri: "/"
+
+consumers:
+  - username: faasapp
+    plugins:
+      jwt-auth:
+        key: faasapp-key
+        secret: "your-super-secret-key-for-development"
+#END
