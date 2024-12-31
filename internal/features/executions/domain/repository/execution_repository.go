@@ -11,4 +11,5 @@ type ExecutionRepository interface {
 	GetByID(ctx context.Context, id string) (*entity.Execution, error)
 	ListByUserID(ctx context.Context, userID string) ([]*entity.Execution, error)
 	Update(ctx context.Context, execution *entity.Execution) error
+	GetActiveExecutionCount(ctx context.Context, userID string) (int, error)
 }

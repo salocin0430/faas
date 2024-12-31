@@ -69,7 +69,7 @@ func main() {
 	// Initialize services
 	funcService := funcService.NewFunctionService(functionRepo)
 	userService := userService.NewUserService(userRepo, cfg)
-	executionService := execService.NewExecutionService(executionRepo, execStreamRepo)
+	executionService := execService.NewExecutionService(executionRepo, execStreamRepo, functionRepo, cfg)
 
 	// Initialize handlers
 	functionHandler := funcHttp.NewFunctionHandler(funcService)

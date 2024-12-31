@@ -5,7 +5,11 @@ import (
 	"faas/internal/features/executions/application/dto"
 	"faas/internal/features/executions/domain/entity"
 	"faas/internal/features/executions/domain/repository"
+	functionRepo "faas/internal/features/functions/domain/repository"
 	"faas/internal/shared/domain/errors"
+	"faas/internal/shared/infrastructure/config"
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,16 +18,42 @@ import (
 type ExecutionService struct {
 	executionRepo       repository.ExecutionRepository
 	executionStreamRepo repository.ExecutionStreamRepository
+	functionRepo        functionRepo.FunctionRepository
+	config              *config.Config
 }
 
-func NewExecutionService(repo repository.ExecutionRepository, streamRepo repository.ExecutionStreamRepository) *ExecutionService {
+func NewExecutionService(repo repository.ExecutionRepository, streamRepo repository.ExecutionStreamRepository, functionRepo functionRepo.FunctionRepository, config *config.Config) *ExecutionService {
 	return &ExecutionService{
 		executionRepo:       repo,
 		executionStreamRepo: streamRepo,
+		functionRepo:        functionRepo,
+		config:              config,
 	}
 }
 
 func (s *ExecutionService) CreateExecution(ctx context.Context, req *dto.CreateExecutionRequest, userID string) (*dto.ExecutionResponse, error) {
+	// Verificar límite de ejecuciones
+	count, err := s.executionRepo.GetActiveExecutionCount(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	maxExecutions, _ := strconv.Atoi(s.config.MaxConcurrentExecutions)
+	if count >= maxExecutions {
+		return nil, fmt.Errorf("execution limit exceeded: maximum %d concurrent executions", maxExecutions)
+	}
+
+	//Get function and validate if this function has the same userID
+	function, err := s.functionRepo.GetByID(ctx, req.FunctionID)
+	if err != nil {
+		return nil, err
+	}
+
+	if function.UserID != userID {
+		return nil, errors.NewAppError("unauthorized", "Not authorized to execute this function")
+	}
+
+	// Crear ejecución
 	execution := &entity.Execution{
 		ID:         uuid.New().String(),
 		FunctionID: req.FunctionID,

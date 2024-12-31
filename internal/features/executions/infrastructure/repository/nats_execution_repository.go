@@ -70,3 +70,35 @@ func (r *NatsExecutionRepository) ListByUserID(ctx context.Context, userID strin
 func (r *NatsExecutionRepository) Update(ctx context.Context, execution *entity.Execution) error {
 	return r.Save(ctx, execution)
 }
+
+func (r *NatsExecutionRepository) GetActiveExecutionCount(ctx context.Context, userID string) (int, error) {
+	kv := r.kv
+
+	// Obtener todas las ejecuciones
+	entries, err := kv.Keys()
+	if err != nil {
+		return 0, err
+	}
+
+	count := 0
+	for _, entry := range entries {
+		// Obtener ejecución
+		data, err := kv.Get(entry)
+		if err != nil {
+			continue
+		}
+
+		var execution entity.Execution
+		if err := json.Unmarshal(data.Value(), &execution); err != nil {
+			continue
+		}
+
+		// Contar si es del usuario y está activa
+		if execution.UserID == userID &&
+			(execution.Status == entity.StatusPending || execution.Status == entity.StatusRunning) {
+			count++
+		}
+	}
+
+	return count, nil
+}

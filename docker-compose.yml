@@ -90,6 +90,9 @@ services:
       - nats
     networks:
       - apisix
+    deploy:
+      replicas: 2
+
 
 volumes:
   nats-data:

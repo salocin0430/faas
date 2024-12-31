@@ -6,6 +6,8 @@ import (
 	"faas/internal/features/executions/domain/entity"
 	"faas/internal/worker/domain/ports"
 	"log"
+	"math"
+	"time"
 
 	"github.com/nats-io/nats.go"
 )
@@ -25,12 +27,29 @@ func NewStreamConsumer(js nats.JetStreamContext) ports.StreamConsumer {
 }
 
 func (c *NatsStreamConsumer) Subscribe(handler func(ctx context.Context, execution *entity.Execution) error) ports.Worker {
-	// Asegurarnos que el stream existe
-	stream, err := c.js.StreamInfo("EXECUTIONS")
-	if err != nil {
-		log.Fatalf("Error getting stream info: %v", err)
+	maxRetries := 5
+	var stream *nats.StreamInfo
+	var err error
+
+	// Intentar conectar al stream con retry
+	for i := 0; i < maxRetries; i++ {
+		stream, err = c.js.StreamInfo("EXECUTIONS")
+		if err != nil {
+			waitTime := time.Duration(math.Pow(2, float64(i))) * time.Second
+			log.Printf("Stream not available, retrying in %v seconds... (attempt %d/%d)",
+				waitTime, i+1, maxRetries)
+			time.Sleep(waitTime)
+			continue
+		}
+		// Stream encontrado
+		log.Printf("Successfully connected to EXECUTIONS stream with %d messages", stream.State.Msgs)
+		break
 	}
-	log.Printf("Found stream EXECUTIONS with %d messages", stream.State.Msgs)
+
+	// Si después de todos los intentos aún falla
+	if err != nil {
+		log.Fatalf("Failed to connect to stream after %d attempts: %v", maxRetries, err)
+	}
 
 	// Configurar consumer
 	sub, err := c.js.QueueSubscribe(
