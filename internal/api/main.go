@@ -82,7 +82,7 @@ func main() {
 	// Setup routes
 	funcHttp.SetupFunctionRoutes(r, functionHandler, cfg.JWTSecret)
 	userHttp.SetupUserRoutes(r, userHandler)
-	execHttp.SetupExecutionRoutes(r, executionHandler)
+	execHttp.SetupExecutionRoutes(r, executionHandler, cfg.JWTSecret)
 
 	// Start server
 	if err := r.Run(cfg.ServerAddress); err != nil {

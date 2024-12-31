@@ -89,7 +89,7 @@ def main():
         result = process_input(input_data)
 
         # Write result to stdout
-        print(json.dumps(result))
+        print(x`.dumps(result))
         sys.exit(0)
 
     except Exception as e:

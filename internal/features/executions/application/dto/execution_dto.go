@@ -7,7 +7,7 @@ import (
 
 type CreateExecutionRequest struct {
 	FunctionID string `json:"function_id" binding:"required"`
-	Input      string `json:"input" binding:"required"`
+	Input      string `json:"input"`
 }
 
 type ExecutionResponse struct {

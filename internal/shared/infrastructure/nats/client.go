@@ -50,10 +50,13 @@ func CreateBuckets(js JetStreamContext) error {
 func CreateStreams(js JetStreamContext) error {
 	// Crear stream persistente para ejecuciones
 	_, err := js.AddStream(&natspkg.StreamConfig{
-		Name:     "EXECUTIONS",
-		Subjects: []string{"executions.>"}, // executions.pending, executions.completed, etc
-		Storage:  natspkg.FileStorage,      // Persistente en disco
-		MaxAge:   24 * time.Hour,           // Retención de mensajes
+		Name:        "EXECUTIONS",
+		Subjects:    []string{"executions.pending"},
+		Storage:     natspkg.FileStorage,
+		Retention:   natspkg.WorkQueuePolicy,
+		MaxAge:      24 * time.Hour,
+		Discard:     natspkg.DiscardOld,
+		AllowDirect: true,
 	})
 	return err
 }
