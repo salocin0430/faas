@@ -32,7 +32,7 @@ func NewExecutionService(repo repository.ExecutionRepository, streamRepo reposit
 }
 
 func (s *ExecutionService) CreateExecution(ctx context.Context, req *dto.CreateExecutionRequest, userID string) (*dto.ExecutionResponse, error) {
-	// Verificar límite de ejecuciones
+	// Check execution limit
 	count, err := s.executionRepo.GetActiveExecutionCount(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -53,7 +53,7 @@ func (s *ExecutionService) CreateExecution(ctx context.Context, req *dto.CreateE
 		return nil, errors.NewAppError("unauthorized", "Not authorized to execute this function")
 	}
 
-	// Crear ejecución
+	// Create execution
 	execution := &entity.Execution{
 		ID:         uuid.New().String(),
 		FunctionID: req.FunctionID,

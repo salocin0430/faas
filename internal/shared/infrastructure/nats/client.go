@@ -17,7 +17,7 @@ func Connect(url string) (*natspkg.Conn, error) {
 }
 
 func CreateBuckets(js JetStreamContext) error {
-	// Bucket para funciones
+	// Bucket for functions
 	_, err := js.CreateKeyValue(&natspkg.KeyValueConfig{
 		Bucket:      FUNCTIONS_BUCKET,
 		Description: "Functions storage",
@@ -26,7 +26,7 @@ func CreateBuckets(js JetStreamContext) error {
 		return err
 	}
 
-	// Bucket para usuarios
+	// Bucket for users
 	_, err = js.CreateKeyValue(&natspkg.KeyValueConfig{
 		Bucket:      USERS_BUCKET,
 		Description: "Users storage",
@@ -35,7 +35,7 @@ func CreateBuckets(js JetStreamContext) error {
 		return err
 	}
 
-	// Bucket para ejecuciones
+	// Bucket for executions
 	_, err = js.CreateKeyValue(&natspkg.KeyValueConfig{
 		Bucket:      EXECUTIONS_BUCKET,
 		Description: "Executions storage",
@@ -48,7 +48,7 @@ func CreateBuckets(js JetStreamContext) error {
 }
 
 func CreateStreams(js JetStreamContext) error {
-	// Crear stream persistente para ejecuciones
+	// Create persistent stream for executions
 	_, err := js.AddStream(&natspkg.StreamConfig{
 		Name:        "EXECUTIONS",
 		Subjects:    []string{"executions.pending"},

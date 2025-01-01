@@ -34,7 +34,7 @@ func validateConfig(cfg *config.AutoscalerConfig) error {
 }
 
 func main() {
-	// Cargar configuración
+	// Load configuration
 	cfg := &config.AutoscalerConfig{
 		MinWorkers:         2,
 		MaxWorkers:         10,
@@ -48,30 +48,30 @@ func main() {
 		log.Fatal("Invalid configuration:", err)
 	}
 
-	// Conectar a NATS
+	// Connect to NATS
 	nc, err := natspkg.Connect(os.Getenv("NATS_URL"))
 	if err != nil {
 		log.Fatal("Failed to connect to NATS:", err)
 	}
 	defer nc.Close()
 
-	// Crear JetStream context
+	// Create JetStream context
 	js, err := nc.JetStream()
 	if err != nil {
 		log.Fatal("Failed to create JetStream context:", err)
 	}
 
-	// Inicializar componentes
+	// Initialize components
 	streamMonitor := nats.NewStreamMonitor(js)
 	scaler, err := docker.NewDockerScaler("worker")
 	if err != nil {
 		log.Fatal("Failed to create docker scaler:", err)
 	}
 
-	// Crear servicio
+	// Create service
 	autoscaler := service.NewAutoscalerService(scaler, streamMonitor, cfg)
 
-	// Manejar señales de término
+	// Handle termination signals
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -84,7 +84,7 @@ func main() {
 		cancel()
 	}()
 
-	// Iniciar autoscaler
+	// Start autoscaler
 	log.Println("Starting autoscaler...")
 	if err := autoscaler.Start(ctx); err != nil {
 		log.Fatal("Autoscaler failed:", err)

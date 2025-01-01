@@ -23,7 +23,7 @@ func NewExecutionService(
 }
 
 func (s *ExecutionService) ProcessExecution(ctx context.Context, execution *entity.Execution) error {
-	// 1. Actualizar estado a "running"
+	// 1. Update status to "running"
 	now := time.Now()
 	execution.Status = entity.StatusRunning
 	execution.StartedAt = &now
@@ -32,21 +32,21 @@ func (s *ExecutionService) ProcessExecution(ctx context.Context, execution *enti
 		return err
 	}
 
-	// 2. Ejecutar función
+	// 2. Execute function
 	output, err := s.containerManager.RunFunction(ctx, execution)
 	now = time.Now()
 	execution.CompletedAt = &now
 
 	if err != nil {
-		// 3a. Si hay error, actualizar estado a "failed"
+		// 3a. If there is an error, update status to "failed"
 		execution.Status = entity.StatusFailed
 		execution.Error = err.Error()
 	} else {
-		// 3b. Si no hay error, actualizar estado a "completed"
+		// 3b. If no error, update status to "completed"
 		execution.Status = entity.StatusCompleted
 		execution.Output = output
 	}
 
-	// 4. Guardar resultado final
+	// 4. Save final result
 	return s.executionRepo.UpdateExecution(ctx, execution)
 }

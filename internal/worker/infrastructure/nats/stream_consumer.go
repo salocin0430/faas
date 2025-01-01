@@ -31,7 +31,7 @@ func (c *NatsStreamConsumer) Subscribe(handler func(ctx context.Context, executi
 	var stream *nats.StreamInfo
 	var err error
 
-	// Intentar conectar al stream con retry
+	// Try to connect to stream with retry
 	for i := 0; i < maxRetries; i++ {
 		stream, err = c.js.StreamInfo("EXECUTIONS")
 		if err != nil {
@@ -41,17 +41,17 @@ func (c *NatsStreamConsumer) Subscribe(handler func(ctx context.Context, executi
 			time.Sleep(waitTime)
 			continue
 		}
-		// Stream encontrado
+		// Stream found
 		log.Printf("Successfully connected to EXECUTIONS stream with %d messages", stream.State.Msgs)
 		break
 	}
 
-	// Si después de todos los intentos aún falla
+	// If after all attempts it still fails
 	if err != nil {
 		log.Fatalf("Failed to connect to stream after %d attempts: %v", maxRetries, err)
 	}
 
-	// Configurar consumer
+	// Configure consumer
 	sub, err := c.js.QueueSubscribe(
 		EXECUTIONS_SUBJECT,
 		WORKERS_QUEUE,

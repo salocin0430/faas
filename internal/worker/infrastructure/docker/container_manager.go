@@ -50,15 +50,15 @@ func (m *DockerContainerManager) RunFunction(ctx context.Context, execution *ent
 	defer reader.Close()
 	io.Copy(io.Discard, reader)
 
-	// Create container con el input como argumento
+	// Create container with input as argument
 	var cmd []string
 	if execution.Input != "" {
-		cmd = []string{execution.Input} // Solo agregamos el input si no está vacío
+		cmd = []string{execution.Input} // Only add input if not empty
 	}
 
 	resp, err := m.client.ContainerCreate(ctx, &container.Config{
 		Image: function.ImageURL,
-		Cmd:   cmd, // Puede ser vacío o contener el input
+		Cmd:   cmd, // Can be empty or contain input
 	}, nil, nil, nil, "")
 	if err != nil {
 		return "", err
@@ -69,8 +69,8 @@ func (m *DockerContainerManager) RunFunction(ctx context.Context, execution *ent
 		return "", err
 	}
 
-	// Crear un contexto con timeout
-	execTimeout := 5 * time.Minute // o el valor que prefieras
+	// Create context with timeout
+	execTimeout := 5 * time.Minute // or preferred value
 	ctx, cancel := context.WithTimeout(ctx, execTimeout)
 	defer cancel()
 
@@ -95,7 +95,7 @@ func (m *DockerContainerManager) RunFunction(ctx context.Context, execution *ent
 	}
 	defer out.Close()
 
-	// Read output y limpiar los bytes de control
+	// Read output and clean control bytes
 	var stdoutBuf bytes.Buffer
 	_, err = stdcopy.StdCopy(&stdoutBuf, io.Discard, out)
 	if err != nil {

@@ -74,18 +74,18 @@ func (r *NatsExecutionRepository) Update(ctx context.Context, execution *entity.
 func (r *NatsExecutionRepository) GetActiveExecutionCount(ctx context.Context, userID string) (int, error) {
 	kv := r.kv
 
-	// Obtener todas las ejecuciones
+	// Get all executions
 	entries, err := kv.Keys()
 	if err != nil {
 		if err.Error() == "nats: no keys found" {
-			return 0, nil // Retornar 0 si no hay ejecuciones
+			return 0, nil // Return 0 if there are no executions
 		}
 		return 0, err
 	}
 
 	count := 0
 	for _, entry := range entries {
-		// Obtener ejecución
+		// Get execution
 		data, err := kv.Get(entry)
 		if err != nil {
 			continue
@@ -96,7 +96,7 @@ func (r *NatsExecutionRepository) GetActiveExecutionCount(ctx context.Context, u
 			continue
 		}
 
-		// Contar si es del usuario y está activa
+		// Count if it belongs to the user and is active
 		if execution.UserID == userID &&
 			(execution.Status == entity.StatusPending || execution.Status == entity.StatusRunning) {
 			count++

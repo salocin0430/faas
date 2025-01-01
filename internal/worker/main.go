@@ -18,20 +18,20 @@ import (
 func main() {
 	cfg := config.LoadConfig()
 
-	// Conectar a NATS
+	// Connect to NATS
 	nc, err := nats.Connect(cfg.NatsURL)
 	if err != nil {
 		log.Fatal("Failed to connect to NATS:", err)
 	}
 	defer nc.Close()
 
-	// Crear JetStream Context
+	// Create JetStream Context
 	js, err := nc.JetStream()
 	if err != nil {
 		log.Fatal("Failed to create JetStream context:", err)
 	}
 
-	// Inicializar componentes
+	// Initialize components
 	functionRepo, err := funcRepo.NewNatsFunctionRepository(js)
 	if err != nil {
 		log.Fatal("Failed to create function repository:", err)
@@ -49,7 +49,7 @@ func main() {
 
 	streamConsumer := workerNats.NewStreamConsumer(js)
 
-	// Crear servicio
+	// Create service
 	executionService := service.NewExecutionService(
 		containerManager,
 		executionRepo,
@@ -57,19 +57,19 @@ func main() {
 
 	log.Println("Starting worker...")
 
-	// Configurar consumer
+	// Configure consumer
 	worker := streamConsumer.Subscribe(executionService.ProcessExecution)
 	log.Println("Subscribed to executions.pending")
 
-	// Manejar shutdown gracefully
+	// Handle graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Canal para señales de sistema
+	// Channel for system signals
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
-	// Esperar señal o cancelación de contexto
+	// Wait for signal or context cancellation
 	select {
 	case <-sigChan:
 		log.Println("Shutting down worker...")

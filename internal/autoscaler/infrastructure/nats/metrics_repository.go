@@ -37,11 +37,11 @@ func (r *NatsMetricsRepository) SaveMetric(ctx context.Context, metric *entity.M
 }
 
 func (r *NatsMetricsRepository) GetWorkerMetrics(ctx context.Context, workerID string) ([]*entity.Metric, error) {
-	// Implementar búsqueda de métricas por worker
+	// Implement search for metrics by worker
 	return nil, nil
 }
 
 func (r *NatsMetricsRepository) GetSystemMetrics(ctx context.Context) ([]*entity.Metric, error) {
-	// Implementar búsqueda de todas las métricas del sistema
+	// Implement search for all system metrics
 	return nil, nil
 }

@@ -2,7 +2,7 @@ package nats
 
 import natspkg "github.com/nats-io/nats.go"
 
-// Interfaces para abstraer los tipos de NATS
+// Interfaces to abstract NATS types
 type KeyValue interface {
 	Get(key string) (KeyValueEntry, error)
 	Put(key string, value []byte) (uint64, error)
@@ -21,7 +21,7 @@ type JetStreamContext interface {
 	AddStream(cfg *natspkg.StreamConfig, opts ...natspkg.JSOpt) (*natspkg.StreamInfo, error)
 }
 
-// Adaptador para convertir nats.KeyValue a nuestra interfaz
+// Adapter to convert nats.KeyValue to our interface
 type keyValueAdapter struct {
 	natsKV natspkg.KeyValue
 }

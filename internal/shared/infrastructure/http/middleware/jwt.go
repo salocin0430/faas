@@ -39,7 +39,7 @@ func ExtractUserID(secret string) gin.HandlerFunc {
 
 		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
 			if sub, exists := claims["sub"].(string); exists {
-				// Establecer el X-User-ID header
+				// Set X-User-ID header
 				c.Request.Header.Set("X-User-ID", sub)
 				c.Next()
 				return

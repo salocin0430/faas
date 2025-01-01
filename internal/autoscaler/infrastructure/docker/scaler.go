@@ -11,7 +11,7 @@ type DockerScaler struct {
 	serviceName      string
 }
 
-const WORKER_START_INDEX = 100 // Índice inicial para workers
+const WORKER_START_INDEX = 100 // Initial index for workers
 
 func NewDockerScaler(serviceName string) (ports.Scaler, error) {
 	manager, err := NewContainerManager()
@@ -60,7 +60,7 @@ func (s *DockerScaler) scale(delta int, up bool) error {
 		map[bool]string{true: "UP", false: "DOWN"}[up],
 		current, target)
 
-	// Detener contenedores existentes si es necesario
+	// Stop existing containers if needed
 	if !up {
 		for i := current - 1; i >= target; i-- {
 			containerName := s.getContainerName(i)
@@ -71,7 +71,7 @@ func (s *DockerScaler) scale(delta int, up bool) error {
 		}
 	}
 
-	// Crear nuevos contenedores si es necesario
+	// Create new containers if needed
 	if target > current {
 		return s.containerManager.RunContainer(s.serviceName, target-current)
 	}
