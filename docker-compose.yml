@@ -88,11 +88,31 @@ services:
       - NATS_URL=nats://nats:4222
     depends_on:
       - nats
+      - api
     networks:
       - apisix
     deploy:
       replicas: 2
 
+  autoscaler:
+    build:
+      context: .
+      dockerfile: deployments/docker/Dockerfile.autoscaler
+    environment:
+      - NATS_URL=nats://nats:4222
+      - MIN_WORKERS=2
+      - MAX_WORKERS=10
+      - SCALE_UP_THRESHOLD=3
+      - SCALE_DOWN_THRESHOLD=2
+      - CHECK_INTERVAL=30s
+      - COOLDOWN_PERIOD=30s
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  # Para acceder a Docker API
+    depends_on:
+      - nats
+      - worker
+    networks:
+      - apisix
 
 volumes:
   nats-data:

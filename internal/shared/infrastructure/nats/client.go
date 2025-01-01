@@ -57,6 +57,7 @@ func CreateStreams(js JetStreamContext) error {
 		MaxAge:      24 * time.Hour,
 		Discard:     natspkg.DiscardOld,
 		AllowDirect: true,
+		AllowRollup: true,
 	})
 	return err
 }

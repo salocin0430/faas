@@ -70,14 +70,16 @@ func (c *NatsStreamConsumer) Subscribe(handler func(ctx context.Context, executi
 				return
 			}
 
-			msg.Ack()
+			if err := msg.Ack(); err != nil {
+				log.Printf("Error acknowledging message: %v", err)
+			}
+
 			log.Printf("Successfully processed execution %s", execution.ID)
 		},
-		//nats.Durable(WORKERS_QUEUE),
 		nats.ManualAck(),
-		//nats.DeliverAll(),
-		//nats.AckWait(time.Minute),
-		//nats.MaxDeliver(3), // Reintentar hasta 3 veces
+		nats.AckWait(30*time.Minute),
+		nats.MaxDeliver(1),
+		nats.DeliverAll(),
 	)
 
 	if err != nil {

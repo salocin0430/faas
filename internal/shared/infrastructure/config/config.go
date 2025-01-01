@@ -16,7 +16,7 @@ func LoadConfig() *Config {
 		NatsURL:                 getEnvOrDefault("NATS_URL", "nats://localhost:4222"),
 		JWTSecret:               getEnvOrDefault("JWT_SECRET", "your-super-secret-key-for-development"),
 		ConsumerKey:             getEnvOrDefault("CONSUMER_KEY", "faasapp-key"),
-		MaxConcurrentExecutions: getEnvOrDefault("MAX_CONCURRENT_EXECUTIONS", "2"),
+		MaxConcurrentExecutions: getEnvOrDefault("MAX_CONCURRENT_EXECUTIONS", "10"),
 	}
 }
 

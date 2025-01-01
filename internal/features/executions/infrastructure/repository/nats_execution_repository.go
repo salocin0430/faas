@@ -77,6 +77,9 @@ func (r *NatsExecutionRepository) GetActiveExecutionCount(ctx context.Context, u
 	// Obtener todas las ejecuciones
 	entries, err := kv.Keys()
 	if err != nil {
+		if err.Error() == "nats: no keys found" {
+			return 0, nil // Retornar 0 si no hay ejecuciones
+		}
 		return 0, err
 	}
 

@@ -5,7 +5,10 @@ import (
 	"context"
 	"faas/internal/features/executions/domain/entity"
 	"faas/internal/worker/domain/ports"
+	"fmt"
 	"io"
+	"log"
+	"time"
 
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
@@ -66,12 +69,20 @@ func (m *DockerContainerManager) RunFunction(ctx context.Context, execution *ent
 		return "", err
 	}
 
+	// Crear un contexto con timeout
+	execTimeout := 5 * time.Minute // o el valor que prefieras
+	ctx, cancel := context.WithTimeout(ctx, execTimeout)
+	defer cancel()
+
 	// Wait for container to finish
 	statusCh, errCh := m.client.ContainerWait(ctx, resp.ID, container.WaitConditionNotRunning)
 	select {
 	case err := <-errCh:
 		return "", err
 	case <-statusCh:
+		log.Printf("Container %s finished execution", resp.ID)
+	case <-ctx.Done():
+		return "", fmt.Errorf("execution timed out after %v", execTimeout)
 	}
 
 	// Get logs

@@ -9,7 +9,7 @@ AUTOSCALER_IMAGE=faas-autoscaler
 build:
 	docker build -t $(API_IMAGE) -f deployments/docker/Dockerfile.api .
 	docker build -t $(WORKER_IMAGE) -f deployments/docker/Dockerfile.worker .
-# docker build -t $(AUTOSCALER_IMAGE) -f deployments/docker/Dockerfile.autoscaler .
+	docker build -t $(AUTOSCALER_IMAGE) -f deployments/docker/Dockerfile.autoscaler .
 
 # Run with docker-compose
 run:
