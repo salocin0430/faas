@@ -3,7 +3,9 @@ package docker
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"faas/internal/features/executions/domain/entity"
+	"faas/internal/shared/infrastructure/config"
 	"faas/internal/worker/domain/ports"
 	"fmt"
 	"io"
@@ -19,9 +21,11 @@ import (
 type DockerContainerManager struct {
 	client       *client.Client
 	functionRepo ports.FunctionRepository
+	secretRepo   ports.SecretRepository
+	config       *config.Config
 }
 
-func NewContainerManager(functionRepo ports.FunctionRepository) (ports.ContainerManager, error) {
+func NewContainerManager(functionRepo ports.FunctionRepository, secretRepo ports.SecretRepository, config *config.Config) (ports.ContainerManager, error) {
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithVersion("1.46"),
@@ -32,6 +36,8 @@ func NewContainerManager(functionRepo ports.FunctionRepository) (ports.Container
 	return &DockerContainerManager{
 		client:       cli,
 		functionRepo: functionRepo,
+		secretRepo:   secretRepo,
+		config:       config,
 	}, nil
 }
 
@@ -56,10 +62,45 @@ func (m *DockerContainerManager) RunFunction(ctx context.Context, execution *ent
 		cmd = []string{execution.Input} // Only add input if not empty
 	}
 
+	// Configurar environment variables
+	env := []string{
+		fmt.Sprintf("API_BASE_URL=%s", m.config.APIBaseURL),
+	}
+
+	// Get secrets , convert input to json , and validate if have secrets and add them to env
+
+	if execution.Input != "" {
+		var input struct {
+			DirectInputs map[string]interface{} `json:"direct_inputs,omitempty"`
+			ObjectInputs map[string]string      `json:"object_inputs,omitempty"`
+			Secrets      []string               `json:"secrets,omitempty"`
+		}
+		if err := json.Unmarshal([]byte(execution.Input), &input); err != nil {
+			return "", err
+		}
+
+		// Process secrets if present
+		if len(input.Secrets) > 0 {
+			for _, secretName := range input.Secrets {
+				secret, err := m.secretRepo.GetByName(ctx, execution.UserID, secretName)
+				if err != nil {
+					return "", err
+				}
+				env = append(env, fmt.Sprintf("%s=%s", secret.Name, secret.Value))
+			}
+		}
+	}
+
+	// Crear configuración del host
+	hostConfig := &container.HostConfig{
+		NetworkMode: container.NetworkMode(m.config.NetworkName), // Usar la misma red definida en docker-compose
+	}
+
 	resp, err := m.client.ContainerCreate(ctx, &container.Config{
 		Image: function.ImageURL,
-		Cmd:   cmd, // Can be empty or contain input
-	}, nil, nil, nil, "")
+		Cmd:   cmd,
+		Env:   env,
+	}, hostConfig, nil, nil, execution.ID)
 	if err != nil {
 		return "", err
 	}

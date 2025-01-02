@@ -8,6 +8,8 @@ type Config struct {
 	JWTSecret               string
 	ConsumerKey             string
 	MaxConcurrentExecutions string
+	APIBaseURL              string
+	NetworkName             string
 }
 
 func LoadConfig() *Config {
@@ -17,6 +19,8 @@ func LoadConfig() *Config {
 		JWTSecret:               getEnvOrDefault("JWT_SECRET", "your-super-secret-key-for-development"),
 		ConsumerKey:             getEnvOrDefault("CONSUMER_KEY", "faasapp-key"),
 		MaxConcurrentExecutions: getEnvOrDefault("MAX_CONCURRENT_EXECUTIONS", "10"),
+		APIBaseURL:              getEnvOrDefault("API_BASE_URL", "http://api:8080/api/function-objects"),
+		NetworkName:             getEnvOrDefault("NETWORK_NAME", "apisix"),
 	}
 }
 

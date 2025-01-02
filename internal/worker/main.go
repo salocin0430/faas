@@ -8,6 +8,7 @@ import (
 	"syscall"
 
 	funcRepo "faas/internal/features/functions/infrastructure/repository"
+	secretRepoExternal "faas/internal/features/secrets/infrastructure/repository"
 	"faas/internal/shared/infrastructure/config"
 	"faas/internal/shared/infrastructure/nats"
 	"faas/internal/worker/application/service"
@@ -37,7 +38,12 @@ func main() {
 		log.Fatal("Failed to create function repository:", err)
 	}
 
-	containerManager, err := docker.NewContainerManager(functionRepo)
+	secretRepo, err := secretRepoExternal.NewKVSecretRepository(js)
+	if err != nil {
+		log.Fatal("Failed to create secret repository:", err)
+	}
+
+	containerManager, err := docker.NewContainerManager(functionRepo, secretRepo, cfg)
 	if err != nil {
 		log.Fatal("Failed to create container manager:", err)
 	}

@@ -1,8 +1,8 @@
 version: '3.8'
 
 services:
-  # APISIX y sus dependencias
-  # etcd:  # Comentado porque usaremos standalone mode
+  # APISIX and its dependencies
+  # etcd:  # Commented because we will use standalone mode
   #   image: bitnami/etcd:3.4.9
   #   user: root
   #   environment:
@@ -48,7 +48,7 @@ services:
     networks:
       - apisix
 
-  # Servicios existentes
+  # Services
   nats:
     image: nats:latest
     command: ["--js"]
@@ -107,7 +107,7 @@ services:
       - CHECK_INTERVAL=30s
       - COOLDOWN_PERIOD=30s
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock  # Para acceder a Docker API
+      - /var/run/docker.sock:/var/run/docker.sock  # To access Docker API
     depends_on:
       - nats
       - worker
@@ -116,9 +116,10 @@ services:
 
 volumes:
   nats-data:
-  # etcd_data:  # Comentado porque no lo usaremos
+  # etcd_data:  # Commented because we will not use it
   apisix_data:
 
 networks:
-  apisix:  # Red dedicada para nuestros servicios
+  apisix:  # Dedicated network for our services
+    name: apisix
     driver: bridge

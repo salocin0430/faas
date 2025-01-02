@@ -10,6 +10,8 @@ const (
 	FUNCTIONS_BUCKET  = "functions"
 	EXECUTIONS_BUCKET = "executions"
 	USERS_BUCKET      = "users"
+	OBJECTS_BUCKET    = "function_objects"
+	SECRETS_BUCKET    = "secrets"
 )
 
 func Connect(url string) (*natspkg.Conn, error) {
@@ -39,6 +41,24 @@ func CreateBuckets(js JetStreamContext) error {
 	_, err = js.CreateKeyValue(&natspkg.KeyValueConfig{
 		Bucket:      EXECUTIONS_BUCKET,
 		Description: "Executions storage",
+	})
+	if err != nil {
+		return err
+	}
+
+	// Bucket for function objects
+	_, err = js.CreateKeyValue(&natspkg.KeyValueConfig{
+		Bucket:      OBJECTS_BUCKET,
+		Description: "Function objects storage",
+	})
+	if err != nil {
+		return err
+	}
+
+	// Bucket for secrets
+	_, err = js.CreateKeyValue(&natspkg.KeyValueConfig{
+		Bucket:      SECRETS_BUCKET,
+		Description: "Secrets storage",
 	})
 	if err != nil {
 		return err

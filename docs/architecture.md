@@ -9,16 +9,6 @@ La plataforma FaaS (Function as a Service) está construida siguiendo los princi
 - Microservicios
 - Event-Driven Architecture
 
-```mermaid
-graph TD
-    A[API Gateway - APISIX] --> B[API Service]
-    B --> C[NATS JetStream]
-    C --> D[Workers]
-    D --> E[Docker Runtime]
-    B --> F[User Management]
-    B --> G[Function Management]
-```
-
 ### 2. Componentes Principales
 
 #### 2.1 API Gateway (APISIX)
@@ -95,16 +85,7 @@ graph TD
 3. Función queda disponible para ejecución
 
 #### 3.2 Ejecución de Función
-```mermaid
-sequenceDiagram
-    Client->>API: POST /executions
-    API->>NATS: Publica ejecución
-    NATS->>Worker: Entrega a worker disponible
-    Worker->>Docker: Ejecuta contenedor
-    Docker->>Worker: Retorna resultado
-    Worker->>NATS: Publica resultado
-    API->>Client: Retorna resultado
-```
+
 
 ### 4. Mecanismos de Seguridad
 
@@ -389,3 +370,77 @@ const (
     ErrInternalError       = "internal_error"
     ErrUnauthorized        = "unauthorized"
 ) 
+```
+
+## Object Storage y Comunicación entre Funciones
+
+### Object Storage
+El sistema incluye un mecanismo de almacenamiento de objetos que permite:
+- Almacenar archivos asociados a funciones
+- Acceder a estos archivos desde las funciones durante la ejecución
+- Gestionar el ciclo de vida de los objetos
+
+#### Componentes Clave:
+1. **Object Repository**: 
+   - Almacena objetos usando NATS KV
+   - Maneja metadata y contenido binario
+   - Organiza objetos por función
+
+2. **Object Service**:
+   - Gestiona operaciones CRUD de objetos
+   - Valida permisos y tipos de archivo
+   - Maneja límites y cuotas
+
+3. **API Endpoints**:
+   - `/api/function-objects/:function_id/:name` para operaciones CRUD
+   - Soporta subida y descarga de archivos
+   - Autenticación mediante JWT
+
+### Comunicación Interna
+Las funciones pueden acceder a los objetos a través de una red interna:
+
+1. **Red Docker**:
+   - Nombre: "apisix"
+   - Conecta todos los servicios
+   - Aislamiento y seguridad
+
+2. **Acceso a Objetos**:
+   - URL base interna: `http://api:9080/api`
+   - No requiere autenticación en red interna
+   - Configurado vía variables de entorno
+
+### Ejemplo: PDF Processor
+
+Este ejemplo demuestra la integración completa del sistema:
+
+1. **Componentes**:
+
+
+2. **Flujo de Datos**:
+   - Cliente sube PDF vía API Gateway
+   - Objeto almacenado en NATS KV
+   - Función accede al PDF vía red interna
+   - Resultado devuelto al cliente
+
+3. **Características**:
+   - Procesamiento asíncrono
+   - Almacenamiento persistente
+   - Comunicación segura
+   - Escalabilidad horizontal
+
+### Consideraciones de Diseño
+
+1. **Seguridad**:
+   - Autenticación externa vía JWT
+   - Red interna confiable
+   - Aislamiento de contenedores
+
+2. **Rendimiento**:
+   - Acceso directo a objetos
+   - Caché de objetos (futuro)
+   - Optimización de red
+
+3. **Escalabilidad**:
+   - Múltiples workers
+   - Distribución de carga
+   - Replicación de datos 

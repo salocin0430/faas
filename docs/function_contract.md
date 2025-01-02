@@ -6,58 +6,61 @@ This document describes the contract that all functions must follow to be compat
 
 ### Input and argv (Command Line Arguments)
 - Function must accept a single string argument in JSON format
-- The argument is passed as a command line argument, known as "argv":
-  - In most languages, argv is an array/list of strings containing program arguments
-  - argv[0] is typically the program name/path
-  - argv[1] contains our JSON input string
-  - Example: `./myfunction '{"value": 42}'`
+- The argument is passed as a command line argument, known as "argv"
+- Input JSON structure:
+  ```json
+  {
+      "direct_inputs": {
+          "param1": "value1",
+          "param2": 123
+      },
+      "object_inputs": {
+          "file1": "function_id/object_name"
+      }
+  }
+  ```
 
-### How argv Works in Different Languages
-
-#### Python
-```python
-import sys
-
-# sys.argv is a list of strings
-# sys.argv[0] = program name (e.g., "./myfunction")
-# sys.argv[1] = JSON input string
-json_input = sys.argv[1]  # e.g., '{"value": 42}'
-```
-
-#### Node.js
-```javascript
-// process.argv is an array of strings
-// process.argv[0] = node executable path
-// process.argv[1] = script path
-// process.argv[2] = JSON input string (note the index is 2, not 1)
-const json_input = process.argv[2]  // e.g., '{"value": 42}'
-```
-
-#### Go
-```go
-// os.Args is a slice of strings
-// os.Args[0] = program name
-// os.Args[1] = JSON input string
-json_input := os.Args[1]  // e.g., '{"value": 42}'
-```
-
-### Output
+### Output Format
 - Result must be written to stdout
 - Must be a valid JSON string
 - Must not contain logs or additional messages
+- Example:
+  ```json
+  {
+      "result": "value",
+      "error": "error message (optional)"
+  }
+  ```
 
 ### Logs and Errors
 - All logs must be written to stderr
 - Errors must be reported to stderr
 - Exit code must be 0 for success, non-zero for error
 
-## 2. Examples by Language
+## 2. Object Access
+
+### Environment Variables
+Functions have access to:
+```bash
+API_BASE_URL="http://api:8080/api/function-objects"  # Base URL for object access
+```
+
+### Accessing Objects
+Objects can be accessed via HTTP GET requests to the internal API:
+```python
+url = f"{os.getenv('API_BASE_URL')}/{object_ref}"
+response = requests.get(url)  # No authentication needed in internal network
+```
+
+## 3. Examples by Language
 
 ### Python
 ```python
 #!/usr/bin/env python3
+import os
 import sys
 import json
+import requests
 import logging
 
 # Configure logging to stderr
@@ -68,8 +71,23 @@ logging.basicConfig(
 )
 
 def process_input(data):
-    # Your logic here
-    return {"result": data["value"] * 2}
+    try:
+        # Get object if specified
+        if "object_inputs" in data:
+            file_ref = data["object_inputs"]["file1"]
+            url = f"{os.getenv('API_BASE_URL')}/{file_ref}"
+            response = requests.get(url)
+            if response.status_code != 200:
+                raise Exception(f"Error getting file: {response.status_code}")
+            # Process file content
+            content = response.content
+            # ... process content ...
+
+        # Process direct inputs
+        result = data["direct_inputs"]["value"] * 2
+        return {"result": result}
+    except Exception as e:
+        return {"error": str(e)}
 
 def main():
     try:
@@ -79,23 +97,20 @@ def main():
 
         # Get JSON from command line argument
         json_input = sys.argv[1]
-        logging.info(f"Received argv[1]: {json_input}")
+        logging.info(f"Received input: {json_input}")
 
         # Parse JSON input
         input_data = json.loads(json_input)
-        logging.info(f"Parsed input: {input_data}")
-
+        
         # Process
         result = process_input(input_data)
 
         # Write result to stdout
-        print(x`.dumps(result))
+        print(json.dumps(result))
         sys.exit(0)
 
     except Exception as e:
-        # Error logs to stderr
         logging.error(f"Error: {str(e)}")
-        # Error result to stdout
         print(json.dumps({"error": str(e)}))
         sys.exit(1)
 
@@ -107,46 +122,71 @@ if __name__ == "__main__":
 ```javascript
 #!/usr/bin/env node
 const process = require('process');
+const axios = require('axios');
 
-// Main processing function
-function processInput(data) {
-    // Your logic here
-    return { result: data.value * 2 };
-}
-
-// Logs go to stderr
+// Configure logging
 function log(message) {
     console.error(`[${new Date().toISOString()}] ${message}`);
 }
 
-try {
-    // Verify arguments (remember Node.js has 2 extra args)
-    if (process.argv.length !== 3) {
-        throw new Error('Exactly one JSON argument required');
+// Main processing function
+async function processInput(data) {
+    try {
+        // Get object if specified
+        if (data.object_inputs) {
+            const fileRef = data.object_inputs.file1;
+            const url = `${process.env.API_BASE_URL}/${fileRef}`;
+            
+            const response = await axios.get(url, {
+                responseType: 'arraybuffer'
+            });
+            
+            if (response.status !== 200) {
+                throw new Error(`Error getting file: ${response.status}`);
+            }
+            
+            // Process file content
+            const content = response.data;
+            // ... process content ...
+        }
+
+        // Process direct inputs
+        const result = data.direct_inputs.value * 2;
+        return { result };
+    } catch (error) {
+        return { error: error.message };
     }
-
-    // Get JSON from command line argument
-    const jsonInput = process.argv[2];  // Note: using index 2
-    log(`Received argv[2]: ${jsonInput}`);
-
-    // Parse JSON input
-    const inputData = JSON.parse(jsonInput);
-    log(`Parsed input: ${JSON.stringify(inputData)}`);
-
-    // Process
-    const result = processInput(inputData);
-
-    // Result to stdout
-    console.log(JSON.stringify(result));
-    process.exit(0);
-
-} catch (error) {
-    // Error to stderr
-    log(`Error: ${error.message}`);
-    // Error result to stdout
-    console.log(JSON.stringify({ error: error.message }));
-    process.exit(1);
 }
+
+async function main() {
+    try {
+        // Verify arguments (remember Node.js has 2 extra args)
+        if (process.argv.length !== 3) {
+            throw new Error('Exactly one JSON argument required');
+        }
+
+        // Get JSON from command line argument
+        const jsonInput = process.argv[2];
+        log(`Received input: ${jsonInput}`);
+
+        // Parse JSON input
+        const inputData = JSON.parse(jsonInput);
+        
+        // Process
+        const result = await processInput(inputData);
+
+        // Result to stdout
+        console.log(JSON.stringify(result));
+        process.exit(0);
+
+    } catch (error) {
+        log(`Error: ${error.message}`);
+        console.log(JSON.stringify({ error: error.message }));
+        process.exit(1);
+    }
+}
+
+main();
 ```
 
 ### Go
@@ -154,28 +194,58 @@ try {
 package main
 
 import (
+    "bytes"
     "encoding/json"
     "fmt"
+    "io"
     "log"
+    "net/http"
     "os"
 )
 
-// Input represents the JSON input structure
+// Input represents the expected JSON input structure
 type Input struct {
-    Value int `json:"value"`
+    DirectInputs struct {
+        Value int `json:"value"`
+    } `json:"direct_inputs"`
+    ObjectInputs struct {
+        File1 string `json:"file1"`
+    } `json:"object_inputs"`
 }
 
 // Output represents the JSON output structure
 type Output struct {
-    Result int    `json:"result,omitempty"`
-    Error  string `json:"error,omitempty"`
+    Result interface{} `json:"result,omitempty"`
+    Error  string     `json:"error,omitempty"`
 }
 
 func processInput(input Input) Output {
-    // Your logic here
-    return Output{
-        Result: input.Value * 2,
+    // Get object if specified
+    if input.ObjectInputs.File1 != "" {
+        apiBaseURL := os.Getenv("API_BASE_URL")
+        url := fmt.Sprintf("%s/%s", apiBaseURL, input.ObjectInputs.File1)
+
+        resp, err := http.Get(url)
+        if err != nil {
+            return Output{Error: fmt.Sprintf("Error getting file: %v", err)}
+        }
+        defer resp.Body.Close()
+
+        if resp.StatusCode != http.StatusOK {
+            return Output{Error: fmt.Sprintf("Error getting file: %d", resp.StatusCode)}
+        }
+
+        // Read and process file content
+        content, err := io.ReadAll(resp.Body)
+        if err != nil {
+            return Output{Error: fmt.Sprintf("Error reading content: %v", err)}
+        }
+        // ... process content ...
     }
+
+    // Process direct inputs
+    result := input.DirectInputs.Value * 2
+    return Output{Result: result}
 }
 
 func main() {
@@ -191,7 +261,7 @@ func main() {
 
     // Get JSON from command line argument
     jsonInput := os.Args[1]
-    log.Printf("Received argv[1]: %s", jsonInput)
+    log.Printf("Received input: %s", jsonInput)
 
     // Parse JSON input
     var input Input
@@ -201,82 +271,43 @@ func main() {
         os.Exit(1)
     }
 
-    // Log parsed input
-    log.Printf("Parsed input: %+v", input)
-
     // Process
     result := processInput(input)
 
     // Write result to stdout
-    json.NewEncoder(os.Stdout).Encode(result)
+    if err := json.NewEncoder(os.Stdout).Encode(result); err != nil {
+        log.Printf("Error encoding result: %v", err)
+        os.Exit(1)
+    }
 }
 ```
 
-## 3. Usage Examples
+## 4. Runtime Environment
 
-### Command Line Execution
-```bash
-# Python function
-python3 function.py '{"value": 21}'
+### Network
+- Functions run in the "apisix" Docker network
+- Direct access to internal API (no auth needed)
+- Environment variables for configuration
 
-# Node.js function
-node function.js '{"value": 21}'
+### Resource Limits
+- Execution timeout: 5 minutes
+- Maximum output size: 1MB
+- Memory: 512MB (default)
+- CPU: 1 core (default)
 
-# Go function (after compilation)
-./function '{"value": 21}'
+## 5. Best Practices
 
-# Expected output in all cases:
-{"result": 42}
-```
+### Error Handling
+- Always use try-catch blocks
+- Return structured error messages
+- Log relevant information
 
-### Successful Call
-```bash
-# Input
-./function '{"value": 21}'
+### Resource Management
+- Close files and connections
+- Clean up temporary resources
+- Handle memory efficiently
 
-# Stdout (result)
-{"result": 42}
-
-# Stderr (logs)
-2023-11-22 10:30:15 - INFO - Received argv[1]: {"value": 21}
-2023-11-22 10:30:15 - INFO - Parsed input: {"value": 21}
-```
-
-### Error Call
-```bash
-# Input
-./function 'invalid json'
-
-# Stdout (result)
-{"error": "Invalid JSON input"}
-
-# Stderr (logs)
-2023-11-22 10:30:20 - ERROR - Error parsing JSON: invalid character 'i' looking for beginning of value
-```
-
-## 4. Important Considerations
-
-1. **Command Line Arguments (argv)**
-   - Always check argument count before accessing
-   - Remember Node.js has different argv indexing
-   - Handle missing or invalid arguments gracefully
-
-2. **Security**
-   - Always validate input
-   - Don't trust external data
-   - Handle errors appropriately
-
-3. **Performance**
-   - Minimize memory usage
-   - Process and release resources efficiently
-   - Consider timeouts
-
-4. **Debugging**
-   - Use informative logs in stderr
-   - Include timestamps in logs
-   - Structure error messages
-
-5. **Best Practices**
-   - Document expected input/output format
-   - Keep function stateless
-   - Follow idempotency principles
+### Security
+- Validate all inputs
+- Don't trust external data
+- Handle errors appropriately

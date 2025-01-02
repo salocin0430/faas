@@ -8,6 +8,11 @@ import (
 type CreateExecutionRequest struct {
 	FunctionID string `json:"function_id" binding:"required"`
 	Input      string `json:"input"`
+	//Input struct {
+	//	DirectInputs map[string]interface{} `json:"direct_inputs,omitempty"`
+	//	ObjectInputs map[string]string      `json:"object_inputs,omitempty"`
+	//	Secrets      []string               `json:"secrets,omitempty"` // Lista de nombres de secrets a usar
+	//} `json:"input" validate:"required"`
 }
 
 type ExecutionResponse struct {
