@@ -116,7 +116,7 @@ curl -X POST http://localhost:9080/api/executions \
   -H "Authorization: Bearer <tu-token-jwt>" \
   -d '{
     "function_id": "123e4567-e89b-12d3-a456-426614174000",
-    "input": "Hello World"
+    "input": "{\"direct_inputs\": {\"name\": \"John\", \"age\": 30}, \"object_inputs\": {\"file\": \"123e4567/document.pdf\"}, \"secrets\": [\"API_KEY\", \"DATABASE_URL\"]}"
   }'
 
 # Respuesta esperada (inmediata)
@@ -124,8 +124,23 @@ curl -X POST http://localhost:9080/api/executions \
     "id": "98765432-abcd-efgh-ijkl-123456789000",
     "function_id": "123e4567-e89b-12d3-a456-426614174000",
     "status": "pending",
-    "input": "Hello World",
+    "input": "{\"direct_inputs\":{\"name\":\"John\",\"age\":30},\"object_inputs\":{\"file\":\"123e4567/document.pdf\"},\"secrets\":[\"API_KEY\",\"DATABASE_URL\"]}",
     "created_at": "2024-03-21T10:30:00Z"
+}
+
+# Formato del input (debe ser un string JSON escapado):
+{
+    "direct_inputs": {          // Parámetros directos para la función
+        "param1": "value1",
+        "param2": value2
+    },
+    "object_inputs": {          // Referencias a archivos almacenados
+        "file_alias": "function_id/object_name"
+    },
+    "secrets": [               // Lista de secrets a inyectar como variables de entorno
+        "SECRET_NAME1",
+        "SECRET_NAME2"
+    ]
 }
 ```
 

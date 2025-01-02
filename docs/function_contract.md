@@ -7,35 +7,87 @@ This document describes the contract that all functions must follow to be compat
 ### Input and argv (Command Line Arguments)
 - Function must accept a single string argument in JSON format
 - The argument is passed as a command line argument, known as "argv"
+- The input must be an escaped JSON string when sending to API
 - Input JSON structure:
   ```json
   {
       "direct_inputs": {
           "param1": "value1",
-          "param2": 123
+          "param2": 123,
+          "param3": true,
+          "param4": {
+              "nested1": "value",
+              "nested2": 456
+          },
+          "param5": ["a", "b", "c"]
       },
       "object_inputs": {
-          "file1": "function_id/object_name"
-      }
+          "file1": "function_id/document.pdf",
+          "config": "function_id/config.json"
+      },
+      "secrets": [
+          "API_KEY",
+          "DATABASE_URL"
+      ]
   }
   ```
+
+### Important Notes About Input
+1. The entire input JSON must be escaped as a string when sending to API
+2. All sections (direct_inputs, object_inputs, secrets) are optional
+3. Object paths must follow format: `function_id/object_name`
+4. Secret names are converted to environment variables
 
 ### Output Format
 - Result must be written to stdout
 - Must be a valid JSON string
 - Must not contain logs or additional messages
-- Example:
-  ```json
-  {
-      "result": "value",
-      "error": "error message (optional)"
-  }
-  ```
+- Two possible formats:
+
+Success response:
+```json
+{
+    "result": "any valid json value",
+    "metadata": {
+        "duration_ms": 1500,
+        "items_processed": 10
+    }
+}
+```
+
+Error response:
+```json
+{
+    "error": "detailed error message"
+}
+```
 
 ### Logs and Errors
 - All logs must be written to stderr
 - Errors must be reported to stderr
 - Exit code must be 0 for success, non-zero for error
+
+### Example API Usage
+```bash
+# Wrong - Input not escaped (don't do this)
+curl -X POST http://localhost:9080/api/executions \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "function_id": "123abc",
+    "input": {
+        "direct_inputs": {"name": "John"},
+        "secrets": ["API_KEY"]
+    }
+  }'
+
+# Correct - Input properly escaped (do this)
+curl -X POST http://localhost:9080/api/executions \
+  -H "Authorization: Bearer $TOKEN" \
+  -d '{
+    "function_id": "123abc",
+    "input": "{\"direct_inputs\":{\"name\":\"John\"},\"secrets\":[\"API_KEY\"]}"
+  }'
+```
 
 ## 2. Object Access
 
@@ -281,7 +333,6 @@ func main() {
     }
 }
 ```
-
 ## 4. Runtime Environment
 
 ### Network
@@ -291,9 +342,9 @@ func main() {
 
 ### Resource Limits
 - Execution timeout: 5 minutes
-- Maximum output size: 1MB
-- Memory: 512MB (default)
-- CPU: 1 core (default)
+- Maximum output size: 1MB 
+- Memory: 512MB (default) TODO
+- CPU: 1 core (default)  TODO
 
 ## 5. Best Practices
 
@@ -309,5 +360,5 @@ func main() {
 
 ### Security
 - Validate all inputs
-- Don't trust external data
+- Don't trust external data TODO
 - Handle errors appropriately
